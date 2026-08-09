@@ -3,42 +3,83 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Bybit · Fib Reversal Bot</title>
+<title>Bybit · EMA · RSI · Fibonacci Reversal Scanner</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-:root{--bg:#0a0e13;--panel:#10161d;--panel2:#141b23;--border:#212a34;--text:#e7edf3;--sub:#7c8a9a;--amber:#e8a33d;--red:#ff5c5c;--green:#2fd98a;--cyan:#4fc3d9;}
+:root{
+  --bg:#0a0e13; --panel:#10161d; --panel2:#141b23; --border:#212a34;
+  --text:#e7edf3; --sub:#7c8a9a; --amber:#e8a33d; --red:#ff5c5c; --green:#2fd98a; --cyan:#4fc3d9;
+}
 *{box-sizing:border-box;}
-body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% -10%,#101823 0%,var(--bg) 55%);color:var(--text);font-family:'JetBrains Mono',monospace;padding:20px 16px 60px;}
+body{
+  margin:0; min-height:100vh;
+  background:radial-gradient(1200px 600px at 10% -10%, #101823 0%, var(--bg) 55%);
+  color:var(--text); font-family:'JetBrains Mono',monospace;
+  padding:24px 20px 60px;
+}
 @media(min-width:900px){body{padding:32px 40px 80px;}}
-.header{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:16px;}
-.title{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;}
-.statusBar{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--sub);align-items:center;}
-.pill{padding:4px 10px;border-radius:20px;border:1px solid var(--border);}
-.pill.on{color:var(--green);border-color:var(--green);}
-.pill.off{color:var(--sub);}
-.pill.live{color:var(--red);border-color:var(--red);}
-.pill.test{color:var(--amber);border-color:var(--amber);}
-.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
-.controls input{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:inherit;font-size:12px;width:160px;}
-.btn{background:linear-gradient(135deg,var(--red),#d43f3f);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;cursor:pointer;}
-.btn:disabled{opacity:.6;cursor:not-allowed;}
-.sectionTitle{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;margin:24px 0 10px;display:flex;align-items:center;gap:8px;}
+.header{display:flex;flex-direction:column;gap:4px;margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px;}
+.eyebrow{font-size:11px;letter-spacing:.18em;color:var(--amber);text-transform:uppercase;}
+.title{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.01em;}
+.subtitle{color:var(--sub);font-size:13px;max-width:640px;line-height:1.5;}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:20px;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;}
+.field input{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:13px;width:150px;}
+.badgeRow{display:flex;gap:8px;flex-wrap:wrap;}
+.cfgBadge{background:var(--panel2);border:1px solid var(--border);color:var(--sub);border-radius:6px;padding:6px 10px;font-size:11.5px;}
+.cfgBadge.on{color:var(--green);border-color:var(--green);}
+.cfgBadge.off{color:var(--sub);}
+.cfgBadge.live{color:var(--red);border-color:var(--red);}
+.cfgBadge.test{color:var(--amber);border-color:var(--amber);}
+.scanBtn{margin-left:auto;background:linear-gradient(135deg,var(--red),#d43f3f);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;cursor:pointer;letter-spacing:.02em;}
+.scanBtn:disabled{opacity:.6;cursor:not-allowed;}
+.status{font-size:12px;color:var(--sub);margin-bottom:18px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
+.errorBox{color:var(--red);font-size:12px;background:#2a1416;border:1px solid #4a2226;padding:10px 14px;border-radius:8px;margin-bottom:16px;white-space:pre-wrap;}
+.sectionTitle{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;margin:26px 0 12px;display:flex;align-items:center;gap:8px;}
 .dot{width:8px;height:8px;border-radius:50%;}
 .dot.red{background:var(--red);box-shadow:0 0 8px var(--red);}
 .dot.amber{background:var(--amber);box-shadow:0 0 8px var(--amber);}
 .dot.cyan{background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;}
-.cardTop{display:flex;justify-content:space-between;align-items:baseline;}
-.symbol{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;}
-.badge{font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px;}
-.badgeSell{background:rgba(255,92,92,.15);color:var(--red);}
+.card.confirmed{border-color:rgba(79,195,217,.35);}
 .badgeConfirmed{background:rgba(79,195,217,.15);color:var(--cyan);}
+.trendRow{display:flex;justify-content:space-between;gap:10px;font-size:10.5px;color:var(--sub);background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:7px 9px;flex-wrap:wrap;}
+.trendRow b{color:var(--text);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.card.triggered{border-color:rgba(255,92,92,.4);box-shadow:0 0 0 1px rgba(255,92,92,.08);}
+.card.armed{border-color:rgba(232,163,61,.3);}
+.cardTop{display:flex;justify-content:space-between;align-items:flex-start;}
+.symbolBlock{display:flex;align-items:baseline;gap:3px;}
+.symbol{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;}
+.quote{font-size:11px;color:var(--sub);}
+.badge{font-size:10px;font-weight:700;padding:4px 8px;border-radius:5px;letter-spacing:.04em;white-space:nowrap;}
+.badgeSell{background:rgba(255,92,92,.15);color:var(--red);}
 .badgeWatch{background:rgba(232,163,61,.15);color:var(--amber);}
-.row{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);}
-.row b{color:var(--text);}
-.chartBtn{background:var(--panel2);border:1px solid var(--border);color:var(--cyan);border-radius:7px;padding:7px 9px;font-size:11px;cursor:pointer;font-family:inherit;}
-.empty{border:1px dashed var(--border);border-radius:12px;padding:24px;text-align:center;color:var(--sub);font-size:13px;}
+.priceRow{display:flex;justify-content:space-between;gap:10px;}
+.label{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.bigPrice{font-size:15px;font-weight:600;}
+.bigPrice.accent{color:var(--amber);}
+.ladder{padding:4px 0;}
+.ladderTrack{position:relative;height:90px;margin:0 60px 0 4px;border-left:2px solid var(--border);}
+.ladderFill{position:absolute;left:-2px;top:0;bottom:0;width:2px;background:linear-gradient(var(--red),var(--cyan));}
+.tick{position:absolute;left:0;width:100%;transform:translateY(-50%);}
+.tick::before{content:'';position:absolute;left:-4px;top:0;width:8px;height:2px;background:var(--sub);}
+.tick.fib::before{background:var(--amber);}
+.tick.fib.active::before{background:var(--red);height:3px;}
+.tickLabel{position:absolute;font-size:9.5px;color:var(--sub);white-space:nowrap;top:-6px;left:10px;}
+.tick.fib.active .tickLabel{color:var(--red);font-weight:700;}
+.marker{position:absolute;left:-6px;width:12px;height:12px;border-radius:50%;background:var(--red);transform:translate(-2px,-50%);box-shadow:0 0 8px var(--red);}
+.rsiRow{display:flex;gap:8px;}
+.rsiPill{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:6px 8px;display:flex;flex-direction:column;gap:2px;}
+.rsiPill span{font-size:9px;color:var(--sub);text-transform:uppercase;}
+.rsiPill b{font-size:13px;}
+.rsiPill em{font-size:9px;color:var(--sub);font-style:normal;}
+.metaRow{display:flex;justify-content:space-between;font-size:10.5px;color:var(--sub);border-top:1px solid var(--border);padding-top:10px;}
+.metaRow b{color:var(--text);}
+.empty{border:1px dashed var(--border);border-radius:12px;padding:30px 20px;text-align:center;color:var(--sub);font-size:13px;}
+.chartBtn{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--cyan);border-radius:7px;padding:8px 10px;font-size:12px;cursor:pointer;font-family:'JetBrains Mono',monospace;letter-spacing:.02em;}
+.chartBtn:hover{border-color:var(--cyan);}
 .logBox{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:11.5px;max-height:340px;overflow:auto;}
 .logLine{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
 .logLine:last-child{border-bottom:none;}
@@ -49,36 +90,46 @@ body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% -1
 .modalOverlay{display:none;position:fixed;inset:0;background:rgba(5,8,12,.78);z-index:1000;align-items:center;justify-content:center;padding:16px;}
 .modalOverlay.open{display:flex;}
 .modalBox{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;width:100%;max-width:980px;max-height:94vh;overflow:auto;}
-.modalHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:700;}
-.modalClose{background:var(--panel2);border:1px solid var(--border);color:var(--sub);border-radius:6px;width:30px;height:30px;cursor:pointer;}
-#chartContainer{width:100%;height:440px;}
-.modalLegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--sub);}
+.modalHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;}
+.modalClose{background:var(--panel2);border:1px solid var(--border);color:var(--sub);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:14px;}
+#chartContainer{width:100%;height:480px;}
+.modalLegend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--sub);}
+.modalLegend span{display:flex;align-items:center;gap:5px;}
+.modalLegend i{width:12px;height:3px;border-radius:2px;display:inline-block;}
+.modalLegend i.dashed{background:transparent;border-top:2px dashed var(--amber);height:0;}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="title">Bybit · EMA/RSI/Fib Reversal Bot</div>
-  <div class="statusBar" id="statusBar">Loading…</div>
+  <div class="eyebrow">Auto-scan · runs on schedule even with this tab closed</div>
+  <div class="title">Bybit · EMA · RSI · Fibonacci Reversal Scanner</div>
+  <div class="subtitle">R3 (RSI overbought) → R2 (RSI oversold) → R1 (EMA20/50 bullish cross + fib touch) → SELL entry when the T1→T2 trend line closes below.</div>
 </div>
 
 <div class="controls">
-  <input type="text" id="tokenInput" placeholder="Admin token (Scan Now)" />
-  <button class="btn" id="scanNowBtn">Scan Now</button>
-  <span id="scanNowResult" style="font-size:11px;color:var(--sub);"></span>
+  <div class="badgeRow" id="cfgBadges"><span class="cfgBadge">Loading…</span></div>
+  <div class="field">
+    <label for="tokenInput">Admin token</label>
+    <input type="text" id="tokenInput" placeholder="MANUAL_SCAN_TOKEN" />
+  </div>
+  <button class="scanBtn" id="scanNowBtn">Scan Now</button>
 </div>
 
-<div class="sectionTitle"><span class="dot red"></span> Triggered (short entries)</div>
+<div class="status" id="statusLine">—</div>
+<div class="errorBox" id="errorBox" style="display:none;"></div>
+
+<div class="sectionTitle"><span class="dot red"></span> Sell Signals (trend line broken + closed)</div>
 <div class="grid" id="triggeredGrid"></div>
-<div class="empty" id="triggeredEmpty" style="display:none;">—</div>
+<div class="empty" id="triggeredEmpty">—</div>
 
-<div class="sectionTitle"><span class="dot cyan"></span> Confirmed (watching trend line)</div>
+<div class="sectionTitle"><span class="dot cyan"></span> Confirmed (fib retest done — watching trend line break)</div>
 <div class="grid" id="confirmedGrid"></div>
-<div class="empty" id="confirmedEmpty" style="display:none;">—</div>
+<div class="empty" id="confirmedEmpty">—</div>
 
-<div class="sectionTitle"><span class="dot amber"></span> Watching (armed, waiting for cross)</div>
+<div class="sectionTitle"><span class="dot amber"></span> Watching (setup armed, waiting for cross / fib retest)</div>
 <div class="grid" id="watchingGrid"></div>
-<div class="empty" id="watchingEmpty" style="display:none;">—</div>
+<div class="empty" id="watchingEmpty">—</div>
 
 <div class="sectionTitle">Trade / scan log</div>
 <div class="logBox" id="logBox">—</div>
@@ -91,10 +142,12 @@ body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% -1
     </div>
     <div id="chartContainer"></div>
     <div class="modalLegend">
-      <span><i style="color:var(--cyan)">●</i> EMA20</span>
-      <span><i style="color:var(--amber)">●</i> EMA50</span>
-      <span><i style="color:var(--red)">●</i> Trend line (T1→T2)</span>
-      <span><i style="color:#8a97a5">●</i> Horizontal (from T1)</span>
+      <span><i style="background:var(--cyan)"></i> EMA20</span>
+      <span><i style="background:var(--amber)"></i> EMA50</span>
+      <span><i style="background:var(--red)"></i> Trend line (T1→T2, extended)</span>
+      <span><i style="background:#8a97a5;border-top:1px dashed #8a97a5;"></i> Horizontal (from T1)</span>
+      <span><i class="dashed"></i> Fib 0.5</span>
+      <span><i style="background:var(--red);border-top:2px dashed var(--red);"></i> Fib 0.618</span>
       <span id="visualAngleLabel" style="color:var(--text);font-weight:600;">Angle on this chart: —</span>
     </div>
   </div>
@@ -113,6 +166,7 @@ document.getElementById("tokenInput").addEventListener("change", e=>{
   localStorage.setItem("adminToken", e.target.value);
 });
 
+/* ============================== format ============================== */
 function formatPrice(p){
   if(p==null||!isFinite(p)) return "-";
   const abs=Math.abs(p);
@@ -124,54 +178,105 @@ function formatPrice(p){
 }
 function formatTime(t){
   if(!t) return "-";
-  return new Date(t).toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+  const d = new Date(t);
+  return d.toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+}
+function trendAngleDeg(s){
+  if(s.lineSlope==null||s.t1Price==null) return null;
+  const pctPerCandle = (s.lineSlope/s.t1Price)*100;
+  return Math.atan(pctPerCandle)*(180/Math.PI);
 }
 
-async function refreshStatus(){
-  try{
-    const res = await fetch(STATUS_URL);
-    const data = await res.json();
-    latestState = data.state;
-    renderStatusBar(data.state);
-    renderGrid("triggeredGrid","triggeredEmpty", data.state.triggered||[], "TRIGGERED");
-    renderGrid("confirmedGrid","confirmedEmpty", data.state.confirmed||[], "CONFIRMED");
-    renderGrid("watchingGrid","watchingEmpty", data.state.watching||[], "ARMED");
-    renderLog(data.log||[]);
-  }catch(e){
-    document.getElementById("statusBar").textContent = "Status load failed: "+e.message;
-  }
+/* ============================== card templates (same as original) ============================== */
+function fibLadderHTML(s){
+  const top=s.p1, bottom=s.p2, range=(top-bottom)||1;
+  const pos=v=>((top-v)/range)*100;
+  const markPrice = s.status==="TRIGGERED" ? s.entryPrice : (s.fibTouchIdx!=null ? s.target : null);
+  return `
+  <div class="ladder"><div class="ladderTrack">
+    <div class="ladderFill"></div>
+    <div class="tick" style="top:${pos(top)}%"><span class="tickLabel">P1 · ${formatPrice(top)}</span></div>
+    ${s.targetLabel?`<div class="tick fib ${s.targetLabel==='0.618'?'active':''}" style="top:${pos(s.lvl618)}%"><span class="tickLabel">0.618 · ${formatPrice(s.lvl618)}</span></div>
+    <div class="tick fib ${s.targetLabel==='0.5'?'active':''}" style="top:${pos(s.lvl5)}%"><span class="tickLabel">0.5 · ${formatPrice(s.lvl5)}</span></div>`:""}
+    <div class="tick" style="top:${pos(bottom)}%"><span class="tickLabel">P2 / T1 · ${formatPrice(bottom)}</span></div>
+    ${markPrice!=null?`<div class="marker" style="top:${pos(markPrice)}%" title="${s.status==='TRIGGERED'?'entry price':'fib touch'}"></div>`:""}
+  </div></div>`;
 }
 
-function renderStatusBar(state){
-  if(!state){ document.getElementById("statusBar").innerHTML = "No scan data yet."; return; }
-  document.getElementById("statusBar").innerHTML = `
-    <span class="pill ${state.testnet?'test':'live'}">${state.testnet?'TESTNET':'LIVE MONEY'}</span>
-    <span class="pill ${state.autoTrade?'on':'off'}">${state.autoTrade?'AUTO-TRADE ON':'AUTO-TRADE OFF (dry run)'}</span>
-    <span class="pill">interval ${state.interval||'-'}</span>
-    <span class="pill">last scan: ${state.updatedAt?formatTime(state.updatedAt):'-'}</span>
-  `;
+function cardHTML(s){
+  const isTriggered = s.status==="TRIGGERED";
+  const isConfirmed = s.status==="CONFIRMED";
+  const hasCross = s.r1!=null;
+  const badgeClass = isTriggered?'badgeSell':(isConfirmed?'badgeConfirmed':'badgeWatch');
+  const badgeText = isTriggered?'SELL SIGNAL':(isConfirmed?'CONFIRMED · WATCHING BREAK':'WATCHING');
+  const cardClass = isTriggered?'triggered':(isConfirmed?'confirmed':'armed');
+  const stepLabel = isTriggered?'Step 3/3 · Trend line closed below'
+    : isConfirmed?'Step 2/3 done · Fib touched at cross, watching trend line'
+    : 'Watching for EMA20/50 cross';
+  return `
+  <div class="card ${cardClass}">
+    <div class="cardTop">
+      <div class="symbolBlock"><span class="symbol">${s.symbol.replace('USDT','')}</span><span class="quote">/USDT</span></div>
+      <div class="badge ${badgeClass}">${badgeText}</div>
+    </div>
+    <div class="priceRow">
+      <div><div class="label">Last Price</div><div class="bigPrice">${formatPrice(s.price)}</div></div>
+      <div><div class="label">${isTriggered?'Entry Price':'Fib Target'}</div><div class="bigPrice accent">${isTriggered?formatPrice(s.entryPrice):(hasCross?formatPrice(s.target):'Awaiting cross')}</div></div>
+    </div>
+    <button class="chartBtn" onclick='openChart(${JSON.stringify(JSON.stringify(s))})'>📈 View Chart (trend line + EMA + fib)</button>
+    ${hasCross?fibLadderHTML(s):""}
+    ${s.t1Price!=null?`<div class="trendRow">
+      <span>T1 (R2 low) <b>${formatPrice(s.t1Price)}</b></span>
+      <span>T2 (EMA cross price) <b>${formatPrice(s.t2Price)}</b></span>
+      <span>Line now <b>${formatPrice(s.status==='TRIGGERED'?s.lineValAtEntry:s.lineValNow)}</b></span>
+      <span>Steepness (not chart angle) <b>${trendAngleDeg(s)!=null?trendAngleDeg(s).toFixed(1)+'°':'—'}</b></span>
+    </div>`:""}
+    <div class="rsiRow">
+      <div class="rsiPill"><span>R3</span><b>${s.r3!=null?s.r3.toFixed(1):'—'}</b><em>${formatTime(s.r3Time)}</em></div>
+      <div class="rsiPill"><span>R2</span><b>${s.r2!=null?s.r2.toFixed(1):'—'}</b><em>${formatTime(s.r2Time)}</em></div>
+      <div class="rsiPill"><span>R1</span><b>${hasCross?s.r1.toFixed(1):'—'}</b><em>${hasCross?formatTime(s.r1Time):'not yet'}</em></div>
+    </div>
+    <div class="metaRow">
+      <span>${stepLabel}</span>
+      ${isTriggered?`<span>Entry: <b>${formatTime(s.entryTime)}</b></span>`:(s.fibTouchIdx!=null?`<span>Fib touch: <b>${formatTime(s.fibTouchTime)}</b></span>`:"")}
+    </div>
+  </div>`;
 }
 
-function renderGrid(gridId, emptyId, list, kind){
+function renderGrid(gridId, emptyId, list){
   const grid = document.getElementById(gridId);
   const empty = document.getElementById(emptyId);
   if(!list.length){ grid.innerHTML=""; empty.style.display="block"; return; }
   empty.style.display="none";
-  grid.innerHTML = list.map(s=>{
-    const badgeClass = kind==="TRIGGERED"?"badgeSell":kind==="CONFIRMED"?"badgeConfirmed":"badgeWatch";
-    return `
-    <div class="card">
-      <div class="cardTop">
-        <span class="symbol">${s.symbol}</span>
-        <span class="badge ${badgeClass}">${kind}</span>
-      </div>
-      ${s.entryPrice!=null?`<div class="row"><span>Entry</span><b>${formatPrice(s.entryPrice)}</b></div>`:""}
-      ${s.t1Price!=null?`<div class="row"><span>T1</span><b>${formatPrice(s.t1Price)}</b></div>`:""}
-      ${s.t2Price!=null?`<div class="row"><span>T2</span><b>${formatPrice(s.t2Price)}</b></div>`:""}
-      ${s.target!=null?`<div class="row"><span>Fib target (${s.targetLabel})</span><b>${formatPrice(s.target)}</b></div>`:""}
-      <button class="chartBtn" onclick='openChart(${JSON.stringify(JSON.stringify(s))})'>📈 View Chart</button>
-    </div>`;
-  }).join("");
+  grid.innerHTML = list.map(cardHTML).join("");
+}
+
+/* ============================== status polling ============================== */
+async function refreshStatus(){
+  try{
+    const res = await fetch(STATUS_URL);
+    const data = await res.json();
+    const state = data.state || {};
+    latestState = state;
+    document.getElementById("errorBox").style.display = state.storeError ? "block" : "none";
+    if(state.storeError) document.getElementById("errorBox").textContent = "Store error: "+state.storeError;
+
+    document.getElementById("cfgBadges").innerHTML = `
+      <span class="cfgBadge ${state.testnet?'test':'live'}">${state.testnet?'TESTNET':'LIVE MONEY'}</span>
+      <span class="cfgBadge ${state.autoTrade?'on':'off'}">${state.autoTrade?'AUTO-TRADE ON':'AUTO-TRADE OFF (dry run)'}</span>
+      <span class="cfgBadge">interval ${state.interval||'-'}</span>
+    `;
+    document.getElementById("statusLine").textContent = state.updatedAt
+      ? `Last scan: ${formatTime(state.updatedAt)} · ${(state.triggered||[]).length} triggered, ${(state.confirmed||[]).length} confirmed, ${(state.watching||[]).length} watching`
+      : "No scan has run yet — tap Scan Now, or wait for the next scheduled run.";
+
+    renderGrid("triggeredGrid","triggeredEmpty", state.triggered||[]);
+    renderGrid("confirmedGrid","confirmedEmpty", state.confirmed||[]);
+    renderGrid("watchingGrid","watchingEmpty", state.watching||[]);
+    renderLog(data.log||[]);
+  }catch(e){
+    document.getElementById("statusLine").textContent = "Status load failed: "+e.message;
+  }
 }
 
 function renderLog(log){
@@ -187,15 +292,20 @@ function renderLog(log){
 
 document.getElementById("scanNowBtn").addEventListener("click", async ()=>{
   const btn = document.getElementById("scanNowBtn");
-  const resultEl = document.getElementById("scanNowResult");
-  btn.disabled = true; resultEl.textContent = "Scanning…";
+  btn.disabled = true; btn.textContent = "Scanning…";
   try{
     const res = await fetch(SCAN_NOW_URL, { headers: { "x-scan-token": document.getElementById("tokenInput").value }});
-    const data = await res.json();
-    if(res.status===401){ resultEl.textContent = "Invalid token"; }
-    else{ resultEl.textContent = `Scanned ${data.scanned}, triggered ${data.triggeredCount}, new trades ${data.newTrades}`; await refreshStatus(); }
-  }catch(e){ resultEl.textContent = "Failed: "+e.message; }
-  btn.disabled = false;
+    if(res.status===401){
+      document.getElementById("errorBox").style.display="block";
+      document.getElementById("errorBox").textContent = "Invalid admin token.";
+    } else {
+      await refreshStatus();
+    }
+  }catch(e){
+    document.getElementById("errorBox").style.display="block";
+    document.getElementById("errorBox").textContent = "Scan failed: "+e.message;
+  }
+  btn.disabled = false; btn.textContent = "Scan Now";
 });
 
 /* ---------------- chart modal (client-side, public Bybit data only) ---------------- */
@@ -227,7 +337,7 @@ async function openChart(sJson){
   const candles = (data.result?.list||[]).slice().reverse().map(k=>({time:Math.floor(+k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4]}));
 
   const chart = LightweightCharts.createChart(container, {
-    width: container.clientWidth, height: 440,
+    width: container.clientWidth, height: 480,
     layout:{ background:{color:"#10161d"}, textColor:"#c7d2dc" },
     grid:{ vertLines:{color:"#1c242d"}, horzLines:{color:"#1c242d"} },
     timeScale:{ timeVisible:true, secondsVisible:false, borderColor:"#212a34" },
