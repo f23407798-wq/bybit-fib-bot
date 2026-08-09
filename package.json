@@ -1,0 +1,9 @@
+{
+  "name": "bybit-fib-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bybit EMA/RSI/Fibonacci reversal scanner with optional auto short-entry trading, deployed on Netlify.",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

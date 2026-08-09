@@ -1,0 +1,12 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Runs the scanner automatically every 15 minutes (cron, UTC).
+# Match this to SCAN_INTERVAL in your environment variables — if you scan
+# a 1h timeframe there's no point re-scanning every 15 minutes.
+[functions."scan"]
+  schedule = "*/15 * * * *"

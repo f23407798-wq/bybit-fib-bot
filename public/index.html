@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bybit · Fib Reversal Bot</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+:root{--bg:#0a0e13;--panel:#10161d;--panel2:#141b23;--border:#212a34;--text:#e7edf3;--sub:#7c8a9a;--amber:#e8a33d;--red:#ff5c5c;--green:#2fd98a;--cyan:#4fc3d9;}
+*{box-sizing:border-box;}
+body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% -10%,#101823 0%,var(--bg) 55%);color:var(--text);font-family:'JetBrains Mono',monospace;padding:20px 16px 60px;}
+@media(min-width:900px){body{padding:32px 40px 80px;}}
+.header{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:16px;}
+.title{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;}
+.statusBar{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--sub);align-items:center;}
+.pill{padding:4px 10px;border-radius:20px;border:1px solid var(--border);}
+.pill.on{color:var(--green);border-color:var(--green);}
+.pill.off{color:var(--sub);}
+.pill.live{color:var(--red);border-color:var(--red);}
+.pill.test{color:var(--amber);border-color:var(--amber);}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.controls input{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:inherit;font-size:12px;width:160px;}
+.btn{background:linear-gradient(135deg,var(--red),#d43f3f);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;cursor:pointer;}
+.btn:disabled{opacity:.6;cursor:not-allowed;}
+.sectionTitle{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;margin:24px 0 10px;display:flex;align-items:center;gap:8px;}
+.dot{width:8px;height:8px;border-radius:50%;}
+.dot.red{background:var(--red);box-shadow:0 0 8px var(--red);}
+.dot.amber{background:var(--amber);box-shadow:0 0 8px var(--amber);}
+.dot.cyan{background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;}
+.cardTop{display:flex;justify-content:space-between;align-items:baseline;}
+.symbol{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;}
+.badge{font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px;}
+.badgeSell{background:rgba(255,92,92,.15);color:var(--red);}
+.badgeConfirmed{background:rgba(79,195,217,.15);color:var(--cyan);}
+.badgeWatch{background:rgba(232,163,61,.15);color:var(--amber);}
+.row{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);}
+.row b{color:var(--text);}
+.chartBtn{background:var(--panel2);border:1px solid var(--border);color:var(--cyan);border-radius:7px;padding:7px 9px;font-size:11px;cursor:pointer;font-family:inherit;}
+.empty{border:1px dashed var(--border);border-radius:12px;padding:24px;text-align:center;color:var(--sub);font-size:13px;}
+.logBox{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:11.5px;max-height:340px;overflow:auto;}
+.logLine{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
+.logLine:last-child{border-bottom:none;}
+.logTime{color:var(--sub);white-space:nowrap;}
+.logMsg.trade{color:var(--green);}
+.logMsg.error{color:var(--red);}
+.logMsg.warn{color:var(--amber);}
+.modalOverlay{display:none;position:fixed;inset:0;background:rgba(5,8,12,.78);z-index:1000;align-items:center;justify-content:center;padding:16px;}
+.modalOverlay.open{display:flex;}
+.modalBox{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;width:100%;max-width:980px;max-height:94vh;overflow:auto;}
+.modalHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:700;}
+.modalClose{background:var(--panel2);border:1px solid var(--border);color:var(--sub);border-radius:6px;width:30px;height:30px;cursor:pointer;}
+#chartContainer{width:100%;height:440px;}
+.modalLegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--sub);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title">Bybit · EMA/RSI/Fib Reversal Bot</div>
+  <div class="statusBar" id="statusBar">Loading…</div>
+</div>
+
+<div class="controls">
+  <input type="text" id="tokenInput" placeholder="Admin token (Scan Now)" />
+  <button class="btn" id="scanNowBtn">Scan Now</button>
+  <span id="scanNowResult" style="font-size:11px;color:var(--sub);"></span>
+</div>
+
+<div class="sectionTitle"><span class="dot red"></span> Triggered (short entries)</div>
+<div class="grid" id="triggeredGrid"></div>
+<div class="empty" id="triggeredEmpty" style="display:none;">—</div>
+
+<div class="sectionTitle"><span class="dot cyan"></span> Confirmed (watching trend line)</div>
+<div class="grid" id="confirmedGrid"></div>
+<div class="empty" id="confirmedEmpty" style="display:none;">—</div>
+
+<div class="sectionTitle"><span class="dot amber"></span> Watching (armed, waiting for cross)</div>
+<div class="grid" id="watchingGrid"></div>
+<div class="empty" id="watchingEmpty" style="display:none;">—</div>
+
+<div class="sectionTitle">Trade / scan log</div>
+<div class="logBox" id="logBox">—</div>
+
+<div class="modalOverlay" id="chartModalOverlay">
+  <div class="modalBox">
+    <div class="modalHeader">
+      <span id="chartModalTitle"></span>
+      <button class="modalClose" id="chartModalCloseBtn">✕</button>
+    </div>
+    <div id="chartContainer"></div>
+    <div class="modalLegend">
+      <span><i style="color:var(--cyan)">●</i> EMA20</span>
+      <span><i style="color:var(--amber)">●</i> EMA50</span>
+      <span><i style="color:var(--red)">●</i> Trend line (T1→T2)</span>
+      <span><i style="color:#8a97a5">●</i> Horizontal (from T1)</span>
+      <span id="visualAngleLabel" style="color:var(--text);font-weight:600;">Angle on this chart: —</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const STATUS_URL = "/.netlify/functions/status";
+const SCAN_NOW_URL = "/.netlify/functions/scan-now";
+const BYBIT_INTERVAL_MAP = {"1m":"1","5m":"5","15m":"15","30m":"30","1h":"60","4h":"240","1d":"D"};
+let latestState = null;
+let activeChart = null;
+
+document.getElementById("tokenInput").value = localStorage.getItem("adminToken") || "";
+document.getElementById("tokenInput").addEventListener("change", e=>{
+  localStorage.setItem("adminToken", e.target.value);
+});
+
+function formatPrice(p){
+  if(p==null||!isFinite(p)) return "-";
+  const abs=Math.abs(p);
+  let decimals=2;
+  if(abs<1) decimals=5;
+  if(abs<0.01) decimals=7;
+  if(abs<0.0001) decimals=9;
+  return Number(p).toLocaleString("en-US",{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
+}
+function formatTime(t){
+  if(!t) return "-";
+  return new Date(t).toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+}
+
+async function refreshStatus(){
+  try{
+    const res = await fetch(STATUS_URL);
+    const data = await res.json();
+    latestState = data.state;
+    renderStatusBar(data.state);
+    renderGrid("triggeredGrid","triggeredEmpty", data.state.triggered||[], "TRIGGERED");
+    renderGrid("confirmedGrid","confirmedEmpty", data.state.confirmed||[], "CONFIRMED");
+    renderGrid("watchingGrid","watchingEmpty", data.state.watching||[], "ARMED");
+    renderLog(data.log||[]);
+  }catch(e){
+    document.getElementById("statusBar").textContent = "Status load failed: "+e.message;
+  }
+}
+
+function renderStatusBar(state){
+  if(!state){ document.getElementById("statusBar").innerHTML = "No scan data yet."; return; }
+  document.getElementById("statusBar").innerHTML = `
+    <span class="pill ${state.testnet?'test':'live'}">${state.testnet?'TESTNET':'LIVE MONEY'}</span>
+    <span class="pill ${state.autoTrade?'on':'off'}">${state.autoTrade?'AUTO-TRADE ON':'AUTO-TRADE OFF (dry run)'}</span>
+    <span class="pill">interval ${state.interval||'-'}</span>
+    <span class="pill">last scan: ${state.updatedAt?formatTime(state.updatedAt):'-'}</span>
+  `;
+}
+
+function renderGrid(gridId, emptyId, list, kind){
+  const grid = document.getElementById(gridId);
+  const empty = document.getElementById(emptyId);
+  if(!list.length){ grid.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  grid.innerHTML = list.map(s=>{
+    const badgeClass = kind==="TRIGGERED"?"badgeSell":kind==="CONFIRMED"?"badgeConfirmed":"badgeWatch";
+    return `
+    <div class="card">
+      <div class="cardTop">
+        <span class="symbol">${s.symbol}</span>
+        <span class="badge ${badgeClass}">${kind}</span>
+      </div>
+      ${s.entryPrice!=null?`<div class="row"><span>Entry</span><b>${formatPrice(s.entryPrice)}</b></div>`:""}
+      ${s.t1Price!=null?`<div class="row"><span>T1</span><b>${formatPrice(s.t1Price)}</b></div>`:""}
+      ${s.t2Price!=null?`<div class="row"><span>T2</span><b>${formatPrice(s.t2Price)}</b></div>`:""}
+      ${s.target!=null?`<div class="row"><span>Fib target (${s.targetLabel})</span><b>${formatPrice(s.target)}</b></div>`:""}
+      <button class="chartBtn" onclick='openChart(${JSON.stringify(JSON.stringify(s))})'>📈 View Chart</button>
+    </div>`;
+  }).join("");
+}
+
+function renderLog(log){
+  const box = document.getElementById("logBox");
+  if(!log.length){ box.textContent="—"; return; }
+  box.innerHTML = log.map(l=>`
+    <div class="logLine">
+      <span class="logTime">${formatTime(l.time)}</span>
+      <span class="logMsg ${l.level||''}">${l.message}</span>
+    </div>
+  `).join("");
+}
+
+document.getElementById("scanNowBtn").addEventListener("click", async ()=>{
+  const btn = document.getElementById("scanNowBtn");
+  const resultEl = document.getElementById("scanNowResult");
+  btn.disabled = true; resultEl.textContent = "Scanning…";
+  try{
+    const res = await fetch(SCAN_NOW_URL, { headers: { "x-scan-token": document.getElementById("tokenInput").value }});
+    const data = await res.json();
+    if(res.status===401){ resultEl.textContent = "Invalid token"; }
+    else{ resultEl.textContent = `Scanned ${data.scanned}, triggered ${data.triggeredCount}, new trades ${data.newTrades}`; await refreshStatus(); }
+  }catch(e){ resultEl.textContent = "Failed: "+e.message; }
+  btn.disabled = false;
+});
+
+/* ---------------- chart modal (client-side, public Bybit data only) ---------------- */
+function calcEMA(closes, period){
+  const k=2/(period+1); const out=new Array(closes.length).fill(null); let ema;
+  for(let i=0;i<closes.length;i++){
+    if(i<period-1) continue;
+    if(i===period-1){ let sum=0; for(let j=0;j<=i;j++) sum+=closes[j]; ema=sum/period; out[i]=ema; }
+    else{ ema=closes[i]*k+ema*(1-k); out[i]=ema; }
+  }
+  return out;
+}
+
+async function openChart(sJson){
+  const s = JSON.parse(sJson);
+  document.getElementById("chartModalTitle").textContent = s.symbol.replace("USDT","") + " / USDT · " + (latestState?.interval||"15m");
+  document.getElementById("chartModalOverlay").classList.add("open");
+  document.getElementById("visualAngleLabel").textContent = "Angle on this chart: —";
+
+  const container = document.getElementById("chartContainer");
+  container.innerHTML = "";
+  if(activeChart){ activeChart.remove(); activeChart=null; }
+
+  const interval = latestState?.interval || "15m";
+  const bybitInterval = BYBIT_INTERVAL_MAP[interval] || "15";
+  const url = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${s.symbol}&interval=${bybitInterval}&limit=300`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const candles = (data.result?.list||[]).slice().reverse().map(k=>({time:Math.floor(+k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4]}));
+
+  const chart = LightweightCharts.createChart(container, {
+    width: container.clientWidth, height: 440,
+    layout:{ background:{color:"#10161d"}, textColor:"#c7d2dc" },
+    grid:{ vertLines:{color:"#1c242d"}, horzLines:{color:"#1c242d"} },
+    timeScale:{ timeVisible:true, secondsVisible:false, borderColor:"#212a34" },
+    rightPriceScale:{ borderColor:"#212a34" },
+  });
+  activeChart = chart;
+
+  const candleSeries = chart.addCandlestickSeries({ upColor:"#2fd98a", downColor:"#ff5c5c", borderVisible:false, wickUpColor:"#2fd98a", wickDownColor:"#ff5c5c" });
+  candleSeries.setData(candles);
+
+  const closes = candles.map(c=>c.close);
+  const ema20 = calcEMA(closes,20), ema50 = calcEMA(closes,50);
+  chart.addLineSeries({ color:"#4fc3d9", lineWidth:1, priceLineVisible:false, lastValueVisible:false })
+    .setData(candles.map((c,i)=>({time:c.time,value:ema20[i]})).filter(d=>d.value!=null));
+  chart.addLineSeries({ color:"#e8a33d", lineWidth:1, priceLineVisible:false, lastValueVisible:false })
+    .setData(candles.map((c,i)=>({time:c.time,value:ema50[i]})).filter(d=>d.value!=null));
+
+  if(s.lvl5!=null) candleSeries.createPriceLine({ price:s.lvl5, color:"#e8a33d", lineWidth:1, lineStyle:LightweightCharts.LineStyle.Dashed, axisLabelVisible:true, title:"Fib 0.5" });
+  if(s.lvl618!=null) candleSeries.createPriceLine({ price:s.lvl618, color:"#ff5c5c", lineWidth:1, lineStyle:LightweightCharts.LineStyle.Dashed, axisLabelVisible:true, title:"Fib 0.618" });
+
+  let trendSeries=null;
+  if(s.t1Idx!=null && s.t2Idx!=null && s.lineSlope!=null){
+    const endIdx = s.entryIdx!=null ? s.entryIdx : candles.length-1;
+    const lineData=[], horizData=[];
+    for(let k=s.t1Idx;k<=endIdx && k<candles.length;k++){
+      lineData.push({ time:candles[k].time, value:s.t1Price + s.lineSlope*(k-s.t1Idx) });
+      horizData.push({ time:candles[k].time, value:s.t1Price });
+    }
+    trendSeries = chart.addLineSeries({ color:"#ff5c5c", lineWidth:2, priceLineVisible:false, lastValueVisible:false });
+    trendSeries.setData(lineData);
+    chart.addLineSeries({ color:"#8a97a5", lineWidth:1, lineStyle:LightweightCharts.LineStyle.Dashed, priceLineVisible:false, lastValueVisible:false }).setData(horizData);
+
+    const markers=[
+      { time:candles[s.t1Idx].time, position:"belowBar", color:"#e8a33d", shape:"circle", text:"T1" },
+      { time:candles[s.t2Idx].time, position:"aboveBar", color:"#4fc3d9", shape:"circle", text:"T2" },
+    ];
+    if(s.entryIdx!=null && candles[s.entryIdx]) markers.push({ time:candles[s.entryIdx].time, position:"aboveBar", color:"#ff5c5c", shape:"arrowDown", text:"SELL" });
+    markers.sort((a,b)=>a.time-b.time);
+    candleSeries.setMarkers(markers);
+  }
+
+  chart.timeScale().fitContent();
+
+  // Real on-screen angle between horizontal & trend line at their vertex —
+  // computed from actual rendered pixel coordinates, matches what you see.
+  if(trendSeries && s.t1Idx!=null && s.t2Idx!=null){
+    requestAnimationFrame(()=>{
+      const label = document.getElementById("visualAngleLabel");
+      const x1 = chart.timeScale().timeToCoordinate(candles[s.t1Idx].time);
+      const x2 = chart.timeScale().timeToCoordinate(candles[s.t2Idx].time);
+      const y1 = candleSeries.priceToCoordinate(s.t1Price);
+      const y2 = candleSeries.priceToCoordinate(s.t2Price);
+      if(x1!=null && x2!=null && y1!=null && y2!=null && label){
+        const deg = Math.atan2(y1-y2, x2-x1) * (180/Math.PI);
+        label.textContent = `Angle on this chart (T1→T2): ${deg.toFixed(1)}°`;
+      }
+    });
+  }
+}
+
+function closeChart(){
+  document.getElementById("chartModalOverlay").classList.remove("open");
+  if(activeChart){ activeChart.remove(); activeChart=null; }
+}
+document.getElementById("chartModalCloseBtn").addEventListener("click", closeChart);
+document.getElementById("chartModalOverlay").addEventListener("click",(e)=>{ if(e.target.id==="chartModalOverlay") closeChart(); });
+
+refreshStatus();
+setInterval(refreshStatus, 30000);
+</script>
+</body>
+</html>
